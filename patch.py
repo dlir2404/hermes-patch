@@ -2,8 +2,11 @@
 """
 Hermes Agent - Google Antigravity / 9Router Compatibility Patcher
 Cross-platform: Windows, macOS, Linux.
+Compatible with Python 3.8+ (Hermes requires Python 3.11+).
 Zero external dependencies (uses standard library only).
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -14,6 +17,7 @@ import argparse
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 # Enable ANSI escape code support on Windows terminal
 if os.name == 'nt':
@@ -63,6 +67,16 @@ NEW_AGENT_IDENTITY = '''DEFAULT_AGENT_IDENTITY = (
     "Depth must be warranted by context, user preference, or topic complexity."
 )'''
 
+NEW_DEFAULT_SOUL = '''DEFAULT_SOUL_MD = (
+    "You are Antigravity, an agentic AI assistant developed by the Google DeepMind team, powered by Gemini. "
+    "Be direct: calibrate your response length to the complexity of the request — a short query receives a "
+    "concise answer, and completed work yields a brief summary of changes, verifications, and next steps, "
+    "without recounting the process. No filler (\\"Great question,\\" \\"I'd be happy to\\"), no repeating "
+    "the question, no summarizing prior messages, and no narrating tool executions. State facts plainly "
+    "without exaggeration; acknowledge uncertainty directly. Agree based on merit, not deference. "
+    "Depth must be warranted by context, user preference, or topic complexity."
+)'''
+
 NEW_TASK_COMPLETION = '''TASK_COMPLETION_GUIDANCE = (
     "# Task completion\\n"
     "When asked to build, run, or verify solutions, deliver functional and verified results backed by tool "
@@ -74,11 +88,12 @@ NEW_TASK_COMPLETION = '''TASK_COMPLETION_GUIDANCE = (
 )'''
 
 PATTERN_ID = re.compile(r'DEFAULT_AGENT_IDENTITY\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")')
+PATTERN_DEFAULT_SOUL = re.compile(r'DEFAULT_SOUL_MD\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")')
 PATTERN_HELP = re.compile(r'HERMES_AGENT_HELP_GUIDANCE\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")')
 PATTERN_NO_SKILLS = re.compile(r'HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")')
 PATTERN_TASK = re.compile(r'TASK_COMPLETION_GUIDANCE\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")')
 
-def find_hermes_executable() -> str | None:
+def find_hermes_executable() -> Optional[str]:
     # 1. System PATH
     bin_path = shutil.which("hermes")
     if bin_path:
@@ -91,11 +106,9 @@ def find_hermes_executable() -> str | None:
 
     # 3. Windows Python Scripts directory
     if os.name == 'nt':
-        # Check current python Scripts dir
         py_scripts = Path(sys.executable).parent / "Scripts" / "hermes.exe"
         if py_scripts.is_file():
             return str(py_scripts)
-        # Check AppData/Roaming/Python/Scripts
         appdata_scripts = Path.home() / "AppData" / "Roaming" / "Python" / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts" / "hermes.exe"
         if appdata_scripts.is_file():
             return str(appdata_scripts)
@@ -112,34 +125,43 @@ def do_check(hermes_dir: Path):
 
     all_patched = True
 
-    # Check SOUL.md
-    soul_file = hermes_dir / "SOUL.md"
-    if soul_file.is_file():
-        text = soul_file.read_text(encoding="utf-8", errors="ignore")
+    # Check all SOUL.md files
+    soul_files = list(hermes_dir.glob("**/SOUL.md"))
+    for sf in soul_files:
+        if ".patch_backup" in sf.parts:
+            continue
+        text = sf.read_text(encoding="utf-8", errors="ignore")
         if "You are Hermes Agent, built by Nous Research" in text or "Be direct: match the length" in text:
-            warn(f"SOUL.md: Stock trigger phrases detected (UNPATCHED)")
+            warn(f"SOUL.md: Stock trigger phrases detected in {sf}")
             all_patched = False
         else:
-            success(f"SOUL.md: Clean persona detected (PATCHED)")
-    else:
-        warn("SOUL.md: File not found")
+            success(f"SOUL.md: Clean persona detected in {sf}")
 
-    # Check prompt_builder.py
+    # Check all default_soul.py files
+    ds_files = list(hermes_dir.glob("**/default_soul.py"))
+    for ds in ds_files:
+        if ".patch_backup" in ds.parts:
+            continue
+        text = ds.read_text(encoding="utf-8", errors="ignore")
+        if "You are Hermes Agent, built by Nous Research" in text:
+            warn(f"default_soul.py: Unpatched in {ds}")
+            all_patched = False
+        else:
+            success(f"default_soul.py: Patched in {ds}")
+
+    # Check all prompt_builder.py files
     pb_files = list(hermes_dir.glob("**/prompt_builder.py"))
-    if not pb_files:
-        warn("No prompt_builder.py files found.")
-    else:
-        for pb in pb_files:
-            if ".patch_backup" in pb.parts:
-                continue
-            text = pb.read_text(encoding="utf-8", errors="ignore")
-            if ("You are Hermes Agent, built by Nous Research" in text or
-                "# Google model operational directives" in text or
-                "# Finishing the job" in text):
-                warn(f"prompt_builder.py: Unpatched in {pb}")
-                all_patched = False
-            else:
-                success(f"prompt_builder.py: Patched in {pb}")
+    for pb in pb_files:
+        if ".patch_backup" in pb.parts:
+            continue
+        text = pb.read_text(encoding="utf-8", errors="ignore")
+        if ("You are Hermes Agent, built by Nous Research" in text or
+            "# Google model operational directives" in text or
+            "# Finishing the job" in text):
+            warn(f"prompt_builder.py: Unpatched in {pb}")
+            all_patched = False
+        else:
+            success(f"prompt_builder.py: Patched in {pb}")
 
     print()
     if all_patched:
@@ -289,24 +311,43 @@ def do_patch(hermes_dir: Path, router_db: Path, skip_restart: bool, skip_verify:
     manifest_entries = []
 
     def backup_path(file_path: Path):
-        # Cross-platform safe relative path replacement
         rel_str = str(file_path.relative_to(hermes_dir)).replace("/", "_").replace("\\", "_")
         dest = backup_dir / rel_str
         shutil.copy2(file_path, dest)
         manifest_entries.append(f"{rel_str}|{file_path.resolve()}")
 
-    # Backup and patch SOUL.md
-    soul_file = hermes_dir / "SOUL.md"
-    info("1/6. Updating ~/.hermes/SOUL.md with sanitized persona...")
-    if soul_file.is_file():
-        backup_path(soul_file)
-    soul_file.write_text(CLEAN_SOUL, encoding="utf-8")
-    success("SOUL.md updated.")
+    # 2. Patch all SOUL.md files and Python sources recursively
+    info("1/6. Updating all SOUL.md and default_soul.py templates...")
+    for root, dirs, files in os.walk(hermes_dir):
+        if ".patch_backup" in root or "__pycache__" in root:
+            continue
 
-    # 2. Patch Python files
+        for f in files:
+            fpath = Path(root) / f
+
+            if f == "SOUL.md":
+                backup_path(fpath)
+                fpath.write_text(CLEAN_SOUL, encoding="utf-8")
+                print(f"  [+] Updated persona: {fpath}")
+
+            elif f == "default_soul.py":
+                content = fpath.read_text(encoding="utf-8", errors="ignore")
+                backup_path(fpath)
+                content = PATTERN_DEFAULT_SOUL.sub(lambda m: NEW_DEFAULT_SOUL, content)
+                fpath.write_text(content, encoding="utf-8")
+                print(f"  [+] Patched default template: {fpath}")
+
+    # Ensure root SOUL.md exists
+    root_soul = hermes_dir / "SOUL.md"
+    if not root_soul.is_file():
+        root_soul.write_text(CLEAN_SOUL, encoding="utf-8")
+        print(f"  [+] Created root persona: {root_soul}")
+
+    success("All personas and default templates updated.")
+
+    # 3. Patch Python prompt builders and system prompts
     info("2/6. Locating and patching prompt_builder.py and system_prompt.py...")
     for root, dirs, files in os.walk(hermes_dir):
-        # Skip backup dirs and pycache
         if ".patch_backup" in root or "__pycache__" in root:
             continue
 
@@ -345,7 +386,7 @@ def do_patch(hermes_dir: Path, router_db: Path, skip_restart: bool, skip_verify:
     manifest_file.write_text("\n".join(manifest_entries) + "\n", encoding="utf-8")
     success("Python prompt builders and system prompts patched.")
 
-    # 3. Purge bytecode
+    # 4. Purge bytecode
     info("3/6. Purging Python bytecode caches (*.pyc and __pycache__)...")
     for pycache in hermes_dir.glob("**/__pycache__"):
         try:
@@ -359,22 +400,22 @@ def do_patch(hermes_dir: Path, router_db: Path, skip_restart: bool, skip_verify:
             pass
     success("Bytecode caches purged.")
 
-    # 4. Clear SQLite DB Cache
+    # 5. Clear SQLite DB Cache
     info("4/6. Resetting SQLite prompt cache in state.db...")
     reset_state_db(hermes_dir)
 
-    # 5. Clear 9Router Model Locks
+    # 6. Clear 9Router Model Locks
     info("5/6. Checking 9Router database for cooldown locks...")
     unlock_9router(router_db)
 
-    # 6. Restart Gateway
+    # 7. Restart Gateway
     if not skip_restart:
         info("6/6. Restarting Hermes gateway background service...")
         restart_gateway()
     else:
         info("6/6. Gateway restart skipped (--no-restart passed).")
 
-    # 7. Verification
+    # 8. Verification
     if not skip_verify:
         verify_fix()
 

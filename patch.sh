@@ -10,6 +10,12 @@
 
 set -euo pipefail
 
+# Delegate to patch.py if present in the same directory (keeps all CLI arguments intact)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
+if [[ -n "$SCRIPT_DIR" && -f "$SCRIPT_DIR/patch.py" ]]; then
+    exec python3 "$SCRIPT_DIR/patch.py" "$@"
+fi
+
 # ANSI color codes
 BOLD='\033[1m'
 GREEN='\033[0;32m'
