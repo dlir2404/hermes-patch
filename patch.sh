@@ -168,7 +168,7 @@ do_rollback() {
         exit 1
     fi
 
-    while IFS='|' read -r rel_path orig_abs_path; do
+    while IFS='|' read -r rel_path orig_abs_path || [[ -n "$rel_path" ]]; do
         if [[ -n "$rel_path" && -f "$latest_backup/$rel_path" ]]; then
             info "Restoring: $orig_abs_path"
             mkdir -p "$(dirname "$orig_abs_path")"
@@ -236,7 +236,7 @@ backup_dir = os.environ['BACKUP_DIR']
 manifest_path = os.environ['MANIFEST']
 
 def backup_file(abs_path):
-    rel = os.path.relpath(abs_path, hermes_dir).replace('/', '_')
+    rel = os.path.relpath(abs_path, hermes_dir).replace('/', '_').replace('\\', '_')
     dest = os.path.join(backup_dir, rel)
     shutil.copy2(abs_path, dest)
     with open(manifest_path, 'a') as f:
@@ -334,7 +334,7 @@ PYEOF
     info "5/6. Checking 9Router database for cooldown locks..."
     if [[ -f "$ROUTER_DB" ]] && command -v sqlite3 >/dev/null 2>&1; then
         local deleted_count
-        deleted_count=$(sqlite3 "$ROUTER_DB" "DELETE FROM storage WHERE key LIKE 'modelLock_%'; SELECT changes();" 2>/dev/null || echo "0")
+        deleted_count=$(sqlite3 "$ROUTER_DB" "DELETE FROM kv WHERE key LIKE 'modelLock_%' OR key LIKE '%modelLock%'; SELECT changes();" 2>/dev/null || echo "0")
         success "9Router model cooldown locks reset ($deleted_count removed)."
     else
         info "9Router database not found or sqlite3 unavailable; skipped."

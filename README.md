@@ -1,6 +1,8 @@
 # Hermes Agent Antigravity / 9Router Compatibility Patch 🚀
 
-A lightweight, automated patch script for [Hermes Agent](https://github.com/NousResearch/hermes-agent) to work seamlessly with **9Router** and **Google Antigravity / Cloud Code PA** models (e.g. `ag/gemini-3.8-flash`, `gemini-2.5-pro`).
+A lightweight, automated patch tool for [Hermes Agent](https://github.com/NousResearch/hermes-agent) to work seamlessly with **9Router** and **Google Antigravity / Cloud Code PA** models (e.g. `ag/gemini-3.8-flash`, `gemini-2.5-pro`).
+
+**100% Cross-Platform**: Works natively on **macOS**, **Linux**, and **Windows** (PowerShell, CMD, Git Bash, WSL).
 
 ---
 
@@ -19,7 +21,7 @@ HTTP 429: {
 ```
 
 ### Root Cause
-This error is **not** a real quota exhaustion. Google Cloud Code PA actively filters system prompts containing verbatim phrases originating from Anthropic's Claude Code and OpenCode:
+This error is **not** a real quota exhaustion. Google Cloud Code PA actively filters system prompts containing verbatim phrases originating from Anthropic Claude Code and OpenCode:
 1. `DEFAULT_AGENT_IDENTITY`: Contains the verbatim Claude Code sizing & exploration rule.
 2. `TASK_COMPLETION_GUIDANCE`: Verbatim Claude Code `"Finishing the job"` directive.
 3. `GOOGLE_MODEL_OPERATIONAL_GUIDANCE`: Exact OpenCode header `"# Google model operational directives"`.
@@ -43,24 +45,38 @@ This error is **not** a real quota exhaustion. Google Cloud Code PA actively fil
 
 ## ⚡ Quick Start
 
-### 1-Liner (Local)
+### 🍎 macOS / 🐧 Linux / 💻 Git Bash
 ```bash
+# 1-Liner (Local)
 bash /Users/dlir/code/hermes-patch/patch.sh
+
+# Or directly with Python
+python3 /Users/dlir/code/hermes-patch/patch.py
 ```
 
-### 1-Liner (Remote via Curl)
-```bash
-curl -fsSL https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.sh | bash
+### 🪟 Windows (PowerShell or CMD)
+
+Since Hermes Agent requires Python to run, Python 3 is already available on any Windows machine running Hermes!
+
+**PowerShell**:
+```powershell
+# In PowerShell:
+.\patch.ps1
+
+# Or with Python:
+python patch.py
+```
+
+**Command Prompt (cmd.exe)**:
+```cmd
+python patch.py
 ```
 
 ---
 
 ## 📖 CLI Usage & Options
 
-```bash
-cd /Users/dlir/code/hermes-patch
-./patch.sh [OPTIONS]
-```
+All scripts (`patch.py`, `patch.sh`, `patch.ps1`) support the same flags:
 
 | Flag | Description |
 | :--- | :--- |
@@ -71,19 +87,27 @@ cd /Users/dlir/code/hermes-patch
 | `--no-verify` | Skips sending the test query |
 | `-h, --help` | Displays help message |
 
-### Environment Variables
-- `HERMES_HOME`: Path to custom Hermes installation (defaults to `~/.hermes`).
-- `NINE_ROUTER_DB`: Path to custom 9Router database (defaults to `~/.9router/db/data.sqlite`).
+### Environment Variables & Custom Paths
+- `HERMES_HOME`: Path to custom Hermes installation (defaults to `~/.hermes` on Unix, `%USERPROFILE%\.hermes` on Windows).
+- `NINE_ROUTER_DB`: Path to custom 9Router database (defaults to `~/.9router/db/data.sqlite` on Unix, `%USERPROFILE%\.9router\db\data.sqlite` on Windows).
 
 ---
 
 ## 🔄 Rollback / Undo
 
-Every time `./patch.sh` is run, it creates an isolated backup in `~/.hermes/.patch_backup_<timestamp>/`.
+Every time the patcher runs, it creates an isolated backup in `~/.hermes/.patch_backup_<timestamp>/`.
 To revert your Hermes installation to its previous state:
 
 ```bash
+# macOS / Linux
 ./patch.sh --rollback
+# or
+python3 patch.py --rollback
+
+# Windows
+.\patch.ps1 -Rollback
+# or
+python patch.py --rollback
 ```
 
 ---
@@ -91,14 +115,20 @@ To revert your Hermes installation to its previous state:
 ## 🧪 Verification
 
 Check your installation status anytime:
+
 ```bash
-./patch.sh --check
+# macOS / Linux
+python3 patch.py --check
+
+# Windows
+python patch.py --check
 ```
 
 Example output:
 ```text
 =================================================================
        Hermes Agent - Google Antigravity / 9Router Patcher       
+              Cross-Platform (Windows, Mac, Linux)               
 =================================================================
 
 [INFO] Checking Hermes installation at: /Users/dlir/.hermes
