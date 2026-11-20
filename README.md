@@ -48,7 +48,7 @@ This error is **not** a real quota exhaustion. Google Cloud Code PA actively fil
 ### 🍎 macOS / 🐧 Linux / 💻 Git Bash
 ```bash
 # Clone the repository (or navigate to where you downloaded it)
-git clone https://github.com/<your-username>/hermes-patch.git
+git clone https://github.com/dlir2404/hermes-patch.git
 cd hermes-patch
 
 # Run with shell script:
