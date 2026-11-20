@@ -45,35 +45,43 @@ This error is **not** a real quota exhaustion. Google Cloud Code PA actively fil
 
 ## ⚡ Quick Start
 
-### 🍎 macOS / 🐧 Linux / 💻 Git Bash
+### 🚀 Cách 1: Chạy ngay 1 dòng lệnh (KHÔNG cần clone repo)
+
+Chỉ cần mở Terminal / PowerShell lên và dán 1 dòng lệnh duy nhất:
+
+**🍎 macOS / 🐧 Linux / 💻 Git Bash:**
 ```bash
-# Clone the repository (or navigate to where you downloaded it)
+curl -fsSL https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.sh | bash
+```
+
+**🪟 Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.ps1 | iex
+```
+
+*Hoặc chạy trực tiếp bằng Python 1-liner (mọi hệ điều hành):*
+```bash
+python3 -c "import urllib.request; exec(urllib.request.urlopen('https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.py').read().decode('utf-8'))"
+```
+
+---
+
+### 📦 Cách 2: Clone repository về máy
+
+#### 🍎 macOS / 🐧 Linux / 💻 Git Bash:
+```bash
 git clone https://github.com/dlir2404/hermes-patch.git
 cd hermes-patch
-
-# Run with shell script:
 ./patch.sh
-
-# Or run directly with Python:
-python3 patch.py
+# hoặc: python3 patch.py
 ```
 
-### 🪟 Windows (PowerShell or CMD)
-
-Since Hermes Agent requires Python to run, Python 3 is already available on any Windows machine running Hermes!
-
-**PowerShell**:
+#### 🪟 Windows (PowerShell hoặc CMD):
 ```powershell
-# In PowerShell:
+git clone https://github.com/dlir2404/hermes-patch.git
+cd hermes-patch
 .\patch.ps1
-
-# Or with Python:
-python patch.py
-```
-
-**Command Prompt (cmd.exe)**:
-```cmd
-python patch.py
+# hoặc: python patch.py
 ```
 
 ---

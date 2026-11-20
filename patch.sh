@@ -270,7 +270,21 @@ new_task = '''TASK_COMPLETION_GUIDANCE = (
     "responses. An honest blocker report is always preferred over imagined results."
 )'''
 
+new_default_soul = '''DEFAULT_SOUL_MD = (
+    "You are Antigravity, an agentic AI assistant developed by the Google DeepMind team, powered by Gemini. "
+    "Be direct: calibrate your response length to the complexity of the request — a short query receives a "
+    "concise answer, and completed work yields a brief summary of changes, verifications, and next steps, "
+    "without recounting the process. No filler (\\"Great question,\\" \\"I'd be happy to\\"), no repeating "
+    "the question, no summarizing prior messages, and no narrating tool executions. State facts plainly "
+    "without exaggeration; acknowledge uncertainty directly. Agree based on merit, not deference. "
+    "Depth must be warranted by context, user preference, or topic complexity."
+)'''
+
+clean_soul = """You are Antigravity, an agentic AI assistant developed by the Google DeepMind team, powered by Gemini. Be direct: calibrate your response length to the complexity of the request — a short query receives a concise answer, and completed work yields a brief summary of changes, verifications, and next steps, without recounting the process. No filler ("Great question," "I'd be happy to"), no repeating the question, no summarizing prior messages, and no narrating tool executions. State facts plainly without exaggeration; acknowledge uncertainty directly. Agree based on merit, not deference. Depth must be warranted by context, user preference, or topic complexity.
+"""
+
 pattern_id = r'DEFAULT_AGENT_IDENTITY\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")'
+pattern_default_soul = r'DEFAULT_SOUL_MD\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")'
 pattern_help = r'HERMES_AGENT_HELP_GUIDANCE\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")'
 pattern_no_skills = r'HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")'
 pattern_task = r'TASK_COMPLETION_GUIDANCE\s*=\s*(?:\([\s\S]*?\n\)|\"[^\"]*\")'
@@ -281,7 +295,24 @@ for root, dirs, files in os.walk(hermes_dir):
         continue
 
     for f in files:
-        if f == 'prompt_builder.py':
+        if f == 'SOUL.md':
+            fpath = os.path.join(root, f)
+            backup_file(fpath)
+            with open(fpath, 'w', encoding='utf-8') as fp:
+                fp.write(clean_soul)
+            print(f"  [+] Updated persona: {fpath}")
+
+        elif f == 'default_soul.py':
+            fpath = os.path.join(root, f)
+            with open(fpath, 'r', encoding='utf-8') as fp:
+                content = fp.read()
+            backup_file(fpath)
+            content = re.sub(pattern_default_soul, lambda m: new_default_soul, content)
+            with open(fpath, 'w', encoding='utf-8') as fp:
+                fp.write(content)
+            print(f"  [+] Patched default template: {fpath}")
+
+        elif f == 'prompt_builder.py':
             fpath = os.path.join(root, f)
             with open(fpath, 'r', encoding='utf-8') as fp:
                 content = fp.read()
