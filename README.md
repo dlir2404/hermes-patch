@@ -47,11 +47,15 @@ This error is **not** a real quota exhaustion. Google Cloud Code PA actively fil
 
 ### 🍎 macOS / 🐧 Linux / 💻 Git Bash
 ```bash
-# 1-Liner (Local)
-bash /Users/dlir/code/hermes-patch/patch.sh
+# Clone the repository (or navigate to where you downloaded it)
+git clone https://github.com/<your-username>/hermes-patch.git
+cd hermes-patch
 
-# Or directly with Python
-python3 /Users/dlir/code/hermes-patch/patch.py
+# Run with shell script:
+./patch.sh
+
+# Or run directly with Python:
+python3 patch.py
 ```
 
 ### 🪟 Windows (PowerShell or CMD)
@@ -131,7 +135,7 @@ Example output:
               Cross-Platform (Windows, Mac, Linux)               
 =================================================================
 
-[INFO] Checking Hermes installation at: /Users/dlir/.hermes
+[INFO] Checking Hermes installation at: ~/.hermes
 [SUCCESS] SOUL.md: Clean persona detected (PATCHED)
 [SUCCESS] prompt_builder.py: Patched in .../environments/151bd1ea.../prompt_builder.py
 [SUCCESS] prompt_builder.py: Patched in .../environments/701a1bbc.../prompt_builder.py
