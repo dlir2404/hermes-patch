@@ -1,114 +1,116 @@
-# Hermes Agent Antigravity / 9Router Compatibility Patch 🚀
+<div align="center">
 
-A lightweight, automated patch tool for [Hermes Agent](https://github.com/NousResearch/hermes-agent) to work seamlessly with **9Router** and **Google Antigravity / Cloud Code PA** models (e.g. `ag/gemini-3.8-flash`, `gemini-2.5-pro`).
+# hermes-patch
 
-**100% Cross-Platform**: Works natively on **macOS**, **Linux**, and **Windows** (PowerShell, CMD, Git Bash, WSL).
+**Automated patch tool for Hermes Agent to seamlessly connect with 9Router and Google Antigravity / Gemini models.**
 
----
+![platform: macOS · Linux · Windows](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows-blue)
+![python: >=3.8](https://img.shields.io/badge/python-%3E%3D3.8-brightgreen)
+[![license: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/dlir2404)
 
-## 🛑 The Problem
+[Overview](#overview) · [Quick Start](#quick-start) · [What It Fixes](#what-it-fixes) · [CLI Options](#cli-options) · [Rollback](#rollback)
 
-When routing Hermes Agent queries through 9Router to Google Cloud Code PA (`cloudcode-pa.googleapis.com`), Google's upstream safety and provenance filter intercepts the request and throws a synthetic HTTP 429:
-
-```text
-HTTP 429: {
-  "error": {
-    "code": 429,
-    "message": "Quota exceeded for quota metric 'Queries' and limit 'Queries per minute' of service 'cloudcode-pa.googleapis.com'...",
-    "status": "RESOURCE_EXHAUSTED"
-  }
-}
-```
-
-### Root Cause
-This error is **not** a real quota exhaustion. Google Cloud Code PA actively filters system prompts containing verbatim phrases originating from Anthropic Claude Code and OpenCode:
-1. `DEFAULT_AGENT_IDENTITY`: Contains the verbatim Claude Code sizing & exploration rule.
-2. `TASK_COMPLETION_GUIDANCE`: Verbatim Claude Code `"Finishing the job"` directive.
-3. `GOOGLE_MODEL_OPERATIONAL_GUIDANCE`: Exact OpenCode header `"# Google model operational directives"`.
-4. `SOUL.md`: Verbatim Nous/Claude persona.
+</div>
 
 ---
 
-## 🛠️ What This Patch Does
+## Overview
 
-1. **Sanitizes Persona (`~/.hermes/SOUL.md`)**: Replaces trigger phrases with a clean, high-performance assistant directive.
-2. **Patches Python Sources**: Modifies `prompt_builder.py` and `system_prompt.py` across:
-   - Core repository: `~/.hermes/hermes-agent/`
-   - All runtime environments: `~/.hermes/installs/*/environments/*/workspace/`
-3. **Purges Bytecode**: Removes all compiled `*.pyc` and `__pycache__` directories to prevent Python from executing stale cached bytecode.
-4. **Resets SQLite Cache**: Wipes cached prompt hashes from `~/.hermes/state.db` so existing sessions rebuild their prompt.
-5. **Unlocks 9Router Cooldown**: Clears any active `modelLock_*` locks in `~/.9router/db/data.sqlite` caused by previous 429 backoffs.
-6. **Restarts Gateway**: Safely restarts the `hermes gateway` background service (`ai.hermes.gateway`).
-7. **Verifies Connectivity**: Runs a live test prompt to ensure end-to-end communication works.
+When using [Hermes Agent](https://github.com/NousResearch/hermes-agent) with **9Router** or **Google Antigravity / Cloud Code PA** models (such as `ag/gemini-3.8-flash` or `gemini-2.5-pro`), upstream safety filters reject requests with an unexpected HTTP 429 status code.
+
+This issue occurs because stock prompt templates inside Hermes contain specific phrasing patterns that trigger upstream policy checks.
+
+**`hermes-patch`** automatically resolves this by:
+- Updating persona definitions across all `SOUL.md` files and default templates to clean, optimized directives.
+- Sanitizing prompt builder constants in the core repository and all virtual environment workspaces.
+- Purging compiled Python bytecode caches (`__pycache__` and `*.pyc`).
+- Invalidating stale system prompt hashes stored in `state.db`.
+- Resetting model cooldown locks in 9Router if present.
+- Restarting the background gateway service cleanly.
+
+Works out of the box with **zero extra dependencies** on **macOS**, **Linux**, and **Windows**.
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
-### 🚀 Cách 1: Chạy ngay 1 dòng lệnh (KHÔNG cần clone repo)
+### Option 1: One-Line Run (No clone needed)
 
-Chỉ cần mở Terminal / PowerShell lên và dán 1 dòng lệnh duy nhất:
+Run directly from your terminal or console without cloning this repository:
 
-**🍎 macOS / 🐧 Linux / 💻 Git Bash:**
+**macOS / Linux / Git Bash:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.sh | bash
 ```
 
-**🪟 Windows (PowerShell):**
+**Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.ps1 | iex
 ```
 
-*Hoặc chạy trực tiếp bằng Python 1-liner (mọi hệ điều hành):*
+**Any OS with Python:**
 ```bash
 python3 -c "import urllib.request; exec(urllib.request.urlopen('https://raw.githubusercontent.com/dlir2404/hermes-patch/main/patch.py').read().decode('utf-8'))"
 ```
 
 ---
 
-### 📦 Cách 2: Clone repository về máy
+### Option 2: Clone & Run Locally
 
-#### 🍎 macOS / 🐧 Linux / 💻 Git Bash:
+**macOS / Linux:**
 ```bash
 git clone https://github.com/dlir2404/hermes-patch.git
 cd hermes-patch
 ./patch.sh
-# hoặc: python3 patch.py
+# or: python3 patch.py
 ```
 
-#### 🪟 Windows (PowerShell hoặc CMD):
+**Windows (PowerShell or CMD):**
 ```powershell
 git clone https://github.com/dlir2404/hermes-patch.git
 cd hermes-patch
 .\patch.ps1
-# hoặc: python patch.py
+# or: python patch.py
 ```
 
 ---
 
-## 📖 CLI Usage & Options
+## What It Fixes
 
-All scripts (`patch.py`, `patch.sh`, `patch.ps1`) support the same flags:
-
-| Flag | Description |
-| :--- | :--- |
-| `--patch` | Applies the patch (default action) |
-| `--check` | Checks if your installation is patched or unpatched without modifying files |
-| `--rollback` | Restores files from the most recent automatic backup |
-| `--no-restart` | Skips restarting `hermes gateway` |
-| `--no-verify` | Skips sending the test query |
-| `-h, --help` | Displays help message |
-
-### Environment Variables & Custom Paths
-- `HERMES_HOME`: Path to custom Hermes installation (defaults to `~/.hermes` on Unix, `%USERPROFILE%\.hermes` on Windows).
-- `NINE_ROUTER_DB`: Path to custom 9Router database (defaults to `~/.9router/db/data.sqlite` on Unix, `%USERPROFILE%\.9router\db\data.sqlite` on Windows).
+1. **Persona Files (`SOUL.md`)**: Rewrites the agent persona in `~/.hermes/SOUL.md`, profiles, and default templates with clean, direct instructions compatible with Google Gemini models.
+2. **Template Generators (`default_soul.py`)**: Updates the built-in generator template so any newly created Hermes profiles stay compatible.
+3. **Core Prompt Builders (`prompt_builder.py`, `system_prompt.py`)**: Sanitizes identity constants, execution guidance, and operational directive headers across the main codebase and runtime workspaces (`~/.hermes/installs/*/environments/*/workspace/`).
+4. **Bytecode Cache Purge**: Cleans up all `*.pyc` and `__pycache__` artifacts to force Python to recompile clean bytecode.
+5. **Session Cache Invalidation**: Clears cached prompt hashes in `~/.hermes/state.db` so existing sessions rebuild their prompt context.
+6. **9Router Cooldown Reset**: Removes backoff lock flags from `~/.9router/db/data.sqlite` caused by previous 429 errors.
+7. **Gateway Service Refresh**: Safely executes `hermes gateway restart -y` to reload the background service.
 
 ---
 
-## 🔄 Rollback / Undo
+## CLI Options
 
-Every time the patcher runs, it creates an isolated backup in `~/.hermes/.patch_backup_<timestamp>/`.
-To revert your Hermes installation to its previous state:
+All entry points (`patch.py`, `patch.sh`, `patch.ps1`) support the following flags:
+
+| Flag | Description |
+| :--- | :--- |
+| `--patch` | Applies the compatibility patches (default action) |
+| `--check` | Verifies current installation status without modifying any files |
+| `--rollback` | Restores files from the most recent automatic backup |
+| `--no-restart` | Skips restarting the background gateway service |
+| `--no-verify` | Skips running the post-patch test query |
+| `-h, --help` | Shows help message and exits |
+
+### Custom Paths & Environment Variables
+- `HERMES_HOME` (or `--hermes-dir`): Path to custom Hermes directory (default: `~/.hermes` or `%USERPROFILE%\.hermes`).
+- `NINE_ROUTER_DB` (or `--router-db`): Path to 9Router SQLite database (default: `~/.9router/db/data.sqlite`).
+
+---
+
+## Rollback
+
+Before modifying any file, an isolated backup is created at `~/.hermes/.patch_backup_<timestamp>/`.
+To revert to your previous configuration at any time:
 
 ```bash
 # macOS / Linux
@@ -124,19 +126,15 @@ python patch.py --rollback
 
 ---
 
-## 🧪 Verification
+## Verification
 
-Check your installation status anytime:
+Check your system status at any time:
 
 ```bash
-# macOS / Linux
 python3 patch.py --check
-
-# Windows
-python patch.py --check
 ```
 
-Example output:
+Example status report:
 ```text
 =================================================================
        Hermes Agent - Google Antigravity / 9Router Patcher       
@@ -144,10 +142,23 @@ Example output:
 =================================================================
 
 [INFO] Checking Hermes installation at: ~/.hermes
-[SUCCESS] SOUL.md: Clean persona detected (PATCHED)
-[SUCCESS] prompt_builder.py: Patched in .../environments/151bd1ea.../prompt_builder.py
-[SUCCESS] prompt_builder.py: Patched in .../environments/701a1bbc.../prompt_builder.py
-[SUCCESS] prompt_builder.py: Patched in .../hermes-agent/agent/prompt_builder.py
+[SUCCESS] SOUL.md: Clean persona detected in ~/.hermes/SOUL.md
+[SUCCESS] default_soul.py: Patched in .../hermes_cli/default_soul.py
+[SUCCESS] prompt_builder.py: Patched in .../agent/prompt_builder.py
 
 [SUCCESS] System status: ALL PATCHES APPLIED
 ```
+
+---
+
+## Support
+
+If this tool helped you, feel free to support:
+
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/dlir2404)
+
+---
+
+## License
+
+[MIT](LICENSE)
