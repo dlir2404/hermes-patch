@@ -1,0 +1,5 @@
+.DS_Store
+*.pyc
+__pycache__/
+*.backup
+.patch_backup_*
